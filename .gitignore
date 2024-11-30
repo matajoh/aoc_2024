@@ -1,0 +1,22 @@
+
+# F# compiled output
+*.dll
+*.exe
+*.pdb
+*.dll.config
+*.exe.config
+
+# F# Interactive
+*.fsi
+*.fsx
+*.fsscript
+
+# Visual Studio files
+bin
+obj
+
+# Visual Studio Code
+.config
+.vscode
+
+.fake
