@@ -44,3 +44,4 @@ let run =
 
     printfn "Part 1: %d" (part1 program)
     printfn "Part 2: %d" (part2 program)
+    printfn ""

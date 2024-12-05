@@ -67,3 +67,4 @@ let run =
 
     printfn "Part 1: %i" (part1 reports)
     printfn "Part 2: %i" (part2 reports)
+    printfn ""

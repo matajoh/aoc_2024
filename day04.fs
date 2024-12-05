@@ -74,3 +74,4 @@ let run =
 
     printfn "Part 1: %d" (part1 grid)
     printfn "Part 2: %d" (part2 grid)
+    printfn ""
