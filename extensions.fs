@@ -1,5 +1,7 @@
 module Extensions
 
+open System
+
 module Array2D =
     let tryGet (r, c) a =
         let rows = Array2D.length1 a
@@ -45,3 +47,8 @@ module List =
             for i in min..max do
                 yield i
         } |> Seq.toList
+
+
+module String =
+    let split (separator : String) (string: String) =
+        string.Split(separator) |> Array.toList
