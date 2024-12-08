@@ -8,6 +8,7 @@
   <ItemGroup>
     <Compile Include="algorithms.fs" />
     <Compile Include="extensions.fs" />
+    <Compile Include="maths.fs" />
     <Compile Include="day*.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>

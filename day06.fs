@@ -40,33 +40,20 @@ type LabMap =
       columns: Tile list list
       guard: Guard }
 
-    static member ofList(list: (int * int * char) list) =
-        let max2 (max0, max1) (t0, t1, _) =
-            (max max0 (t0 + 1)), (max max1 (t1 + 1))
-
-        let rowCount, colCount = list |> List.fold max2 (0, 0)
-
-        let convert select maxVal list =
+    static member ofGrid grid =
+        let convert maxVal list =
             let obstructions =
                 list
-                |> List.map (fun (r, c, x) -> if x = '#' then Some(select (r, c) + 1) else None)
+                |> List.map (fun (i, x) -> if x = '#' then Some(Obstruction(i + 1)) else None)
                 |> List.choose id
-                |> List.sort
-                |> List.map Obstruction
 
             List.append ((Exit 0) :: obstructions) [ Exit(maxVal + 1) ]
 
-        let rows =
-            list
-            |> List.groupBy (fun (r, _, _) -> r)
-            |> List.map (fun (_, row) -> convert snd rowCount row)
+        let rows = grid |> Grid.byRow |> List.map snd |> List.map (convert grid.rows)
 
-        let cols =
-            list
-            |> List.groupBy (fun (_, c, _) -> c)
-            |> List.map (fun (_, col) -> convert fst colCount col)
+        let cols = grid |> Grid.byColumn |> List.map snd |> List.map (convert grid.columns)
 
-        let r, c, _ = list |> List.filter (fun (_, _, x) -> x = '^') |> List.head
+        let r, c = Grid.findValue '^' grid |> List.head
 
         { rows = rows
           columns = cols
@@ -182,11 +169,7 @@ let run =
         s |> Seq.indexed |> Seq.map (fun (c, x) -> r, c, x) |> Seq.toList
 
     let map =
-        File.ReadLines("inputs/day06.txt")
-        |> Seq.toList
-        |> List.indexed
-        |> List.collect seqToRow
-        |> LabMap.ofList
+        File.ReadLines("inputs/day06.txt") |> Seq.toList |> List.toGrid |> LabMap.ofGrid
 
     printfn "Part 1: %i" (part1 map)
     printfn "Part 2: %i" (part2 map)

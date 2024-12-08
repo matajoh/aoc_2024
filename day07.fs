@@ -5,11 +5,14 @@ open System.IO
 open Extensions
 open System.Numerics
 
+
 let concat a b =
     ((string a) + (string b)) |> BigInteger.Parse
 
+
 let apply operators a b ys =
     operators |> List.map (fun o -> (o a b), ys)
+
 
 let rec findSolution (next: 'a -> 'a -> 'a list -> ('a * 'a list) list) current target =
     match current with
@@ -20,14 +23,17 @@ let rec findSolution (next: 'a -> 'a -> 'a list -> ('a * 'a list) list) current 
     | [] -> false
     | _ -> false
 
+
 let solutionExists next (t, xs) =
     findSolution next [ (List.head xs, List.tail xs) ] t
+
 
 let part1 problems =
     problems
     |> List.filter (solutionExists (apply [ (*); (+) ]))
     |> List.map fst
     |> List.sum
+
 
 let part2 problems =
     problems
