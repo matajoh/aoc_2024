@@ -1,7 +1,6 @@
 module Extensions
 
 open System
-open System.IO
 
 module Array2D =
     let tryGet (r, c) a =
@@ -21,18 +20,18 @@ module Array2D =
         }
 
 type grid<'a> when 'a: comparison =
-    { table: Map<int * int, 'a>
-      rows: int
-      columns: int }
+    { Table: Map<int * int, 'a>
+      Rows: int
+      Columns: int }
 
 module Grid =
-    let find key grid = Map.find key grid.table
+    let find key grid = Map.find key grid.Table
 
-    let tryFind key grid = Map.tryFind key grid.table
+    let tryFind key grid = Map.tryFind key grid.Table
 
     let map mapping grid =
         { grid with
-            table = Map.map mapping grid.table }
+            Table = Map.map mapping grid.Table }
 
     let filterMap (mapping: 'a -> Option<'b>) grid =
         let folder filtered key value =
@@ -40,41 +39,41 @@ module Grid =
             | Some v -> Map.add key v filtered
             | None -> filtered
 
-        { rows = grid.rows
-          columns = grid.columns
-          table = Map.fold folder grid.table Map.empty }
+        { Rows = grid.Rows
+          Columns = grid.Columns
+          Table = Map.fold folder grid.Table Map.empty }
 
     let filter (vals: Set<'a>) grid =
         let f _ x = Set.contains x vals
 
         { grid with
-            table = Map.filter f grid.table }
+            Table = Map.filter f grid.Table }
 
     let filterOut (vals: Set<'a>) grid =
         let f _ x = not (Set.contains x vals)
 
         { grid with
-            table = Map.filter f grid.table }
+            Table = Map.filter f grid.Table }
 
     let findValue x grid =
-        grid.table
+        grid.Table
         |> Map.toList
         |> List.filter (fun (_, y) -> y = x)
         |> List.map fst
 
     let byRow grid =
-        grid.table
+        grid.Table
         |> Map.toList
         |> List.groupBy (fun ((r, _), _) -> r)
         |> List.map (fun (r, xs) -> r, (xs |> List.map (fun ((_, c), x) -> c, x)))
 
     let byColumn grid =
-        grid.table
+        grid.Table
         |> Map.toList
         |> List.groupBy (fun ((_, c), _) -> c)
         |> List.map (fun (c, xs) -> c, (xs |> List.map (fun ((r, _), x) -> r, x)))
 
-    let create rows columns table = {rows=rows; columns=columns; table=table}
+    let create rows columns table = {Rows=rows; Columns=columns; Table=table}
 
 
 module List =

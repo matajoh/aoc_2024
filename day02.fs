@@ -4,23 +4,23 @@ open System
 open System.IO
 
 type ReportCheck =
-    { ascending: int
-      descending: int
-      unsafe: int }
+    { Ascending: int
+      Descending: int
+      Unsafe: int }
 
     static member Zero =
-        { ascending = 0
-          descending = 0
-          unsafe = 0 }
+        { Ascending = 0
+          Descending = 0
+          Unsafe = 0 }
 
     static member isSafe reportCheck =
         match reportCheck with
-        | { ascending = _
-            descending = 0
-            unsafe = 0 } -> true
-        | { ascending = 0
-            descending = _
-            unsafe = 0 } -> true
+        | { Ascending = _
+            Descending = 0
+            Unsafe = 0 } -> true
+        | { Ascending = 0
+            Descending = _
+            Unsafe = 0 } -> true
         | _ -> false
 
 let splitAndConvert (s: String) =
@@ -31,13 +31,13 @@ let checkLevels reportCheck (a, b) =
     match b - a with
     | x when x > 0 && x <= 3 ->
         { reportCheck with
-            ascending = reportCheck.ascending + 1 }
+            Ascending = reportCheck.Ascending + 1 }
     | x when x < 0 && x >= -3 ->
         { reportCheck with
-            descending = reportCheck.descending + 1 }
+            Descending = reportCheck.Descending + 1 }
     | _ ->
         { reportCheck with
-            unsafe = reportCheck.unsafe + 1 }
+            Unsafe = reportCheck.Unsafe + 1 }
 
 let checkReport report =
     report |> List.pairwise |> List.fold checkLevels ReportCheck.Zero

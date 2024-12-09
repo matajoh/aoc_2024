@@ -5,7 +5,7 @@ open System.IO
 open Extensions
 
 
-type Position = { row: int; column: int }
+type Position = { Row: int; Column: int }
 
 
 type Direction =
@@ -16,9 +16,9 @@ type Direction =
 
 
 type Guard =
-    { position: Position
-      direction: Direction
-      isOutside: bool }
+    { Position: Position
+      Direction: Direction
+      IsOutside: bool }
 
 
 type Tile =
@@ -36,9 +36,9 @@ type Tile =
 
 
 type LabMap =
-    { rows: Tile list list
-      columns: Tile list list
-      guard: Guard }
+    { Rows: Tile list list
+      Columns: Tile list list
+      Guard: Guard }
 
     static member ofGrid grid =
         let convert maxVal list =
@@ -49,28 +49,28 @@ type LabMap =
 
             List.append ((Exit 0) :: obstructions) [ Exit(maxVal + 1) ]
 
-        let rows = grid |> Grid.byRow |> List.map snd |> List.map (convert grid.rows)
+        let rows = grid |> Grid.byRow |> List.map snd |> List.map (convert grid.Rows)
 
-        let cols = grid |> Grid.byColumn |> List.map snd |> List.map (convert grid.columns)
+        let cols = grid |> Grid.byColumn |> List.map snd |> List.map (convert grid.Columns)
 
         let r, c = Grid.findValue '^' grid |> List.head
 
-        { rows = rows
-          columns = cols
-          guard =
-            { position = { row = r + 1; column = c + 1 }
-              direction = Up
-              isOutside = false } }
+        { Rows = rows
+          Columns = cols
+          Guard =
+            { Position = { Row = r + 1; Column = c + 1 }
+              Direction = Up
+              IsOutside = false } }
 
     static member moveGuard map =
-        let g = map.guard
-        let p, d = g.position, g.direction
+        let g = map.Guard
+        let p, d = g.Position, g.Direction
 
         let value, list =
             if d = Left || d = Right then
-                Open p.column, map.rows.[p.row - 1]
+                Open p.Column, map.Rows.[p.Row - 1]
             else
-                Open p.row, map.columns.[p.column - 1]
+                Open p.Row, map.Columns.[p.Column - 1]
 
         let i = List.binarySearch Tile.compare value list |> (~~~)
 
@@ -82,25 +82,25 @@ type LabMap =
 
         let p', d', o =
             match d, t with
-            | Up, Obstruction i -> { p with row = i + 1 }, Right, false
-            | Up, Exit i -> { p with row = i + 1 }, d, true
-            | Right, Obstruction i -> { p with column = i - 1 }, Down, false
-            | Right, Exit i -> { p with column = i - 1 }, d, true
-            | Down, Obstruction i -> { p with row = i - 1 }, Left, false
-            | Down, Exit i -> { p with row = i - 1 }, d, true
-            | Left, Obstruction i -> { p with column = i + 1 }, Up, false
-            | Left, Exit i -> { p with column = i + 1 }, d, true
+            | Up, Obstruction i -> { p with Row = i + 1 }, Right, false
+            | Up, Exit i -> { p with Row = i + 1 }, d, true
+            | Right, Obstruction i -> { p with Column = i - 1 }, Down, false
+            | Right, Exit i -> { p with Column = i - 1 }, d, true
+            | Down, Obstruction i -> { p with Row = i - 1 }, Left, false
+            | Down, Exit i -> { p with Row = i - 1 }, d, true
+            | Left, Obstruction i -> { p with Column = i + 1 }, Up, false
+            | Left, Exit i -> { p with Column = i + 1 }, d, true
             | _ -> failwith "Invalid result from search"
 
         { map with
-            guard =
-                { position = p'
-                  direction = d'
-                  isOutside = o } }
+            Guard =
+                { Position = p'
+                  Direction = d'
+                  IsOutside = o } }
 
     static member addObstruction m (r, c) =
-        let row = m.rows.[r - 1]
-        let col = m.columns.[c - 1]
+        let row = m.Rows.[r - 1]
+        let col = m.Columns.[c - 1]
         let ri = List.binarySearch Tile.compare (Open c) row |> (~~~)
 
         if ri < 0 then
@@ -112,28 +112,28 @@ type LabMap =
 
             Some
                 { m with
-                    rows = List.updateAt (r - 1) row' m.rows
-                    columns = List.updateAt (c - 1) col' m.columns }
+                    Rows = List.updateAt (r - 1) row' m.Rows
+                    Columns = List.updateAt (c - 1) col' m.Columns }
 
 
 let rec patrol route visited map =
-    if map.guard.isOutside then
-        Some((map.guard :: route) |> List.rev)
-    elif Set.contains map.guard visited then
+    if map.Guard.IsOutside then
+        Some((map.Guard :: route) |> List.rev)
+    elif Set.contains map.Guard visited then
         None
     else
-        patrol (map.guard :: route) (Set.add map.guard visited) (LabMap.moveGuard map)
+        patrol (map.Guard :: route) (Set.add map.Guard visited) (LabMap.moveGuard map)
 
 
 let expand (a, b) =
-    let p0, d = a.position, a.direction
-    let p1 = b.position
+    let p0, d = a.Position, a.Direction
+    let p1 = b.Position
 
     match d, p0, p1 with
-    | Up, { row = r1; column = c }, { row = r0 } -> List.arange r0 r1 |> List.map (fun r -> (r, c))
-    | Right, { row = r; column = c0 }, { column = c1 } -> List.arange c0 c1 |> List.map (fun c -> (r, c))
-    | Down, { row = r0; column = c }, { row = r1 } -> List.arange r0 r1 |> List.map (fun r -> (r, c))
-    | Left, { row = r; column = c1 }, { column = c0 } -> List.arange c0 c1 |> List.map (fun c -> (r, c))
+    | Up, { Row = r1; Column = c }, { Row = r0 } -> List.arange r0 r1 |> List.map (fun r -> (r, c))
+    | Right, { Row = r; Column = c0 }, { Column = c1 } -> List.arange c0 c1 |> List.map (fun c -> (r, c))
+    | Down, { Row = r0; Column = c }, { Row = r1 } -> List.arange r0 r1 |> List.map (fun r -> (r, c))
+    | Left, { Row = r; Column = c1 }, { Column = c0 } -> List.arange c0 c1 |> List.map (fun c -> (r, c))
 
 
 let routeTiles map =
@@ -149,7 +149,7 @@ let part1 map = map |> routeTiles |> Set.count
 
 
 let part2 map =
-    let initPos = map.guard.position.row, map.guard.position.column
+    let initPos = map.Guard.Position.Row, map.Guard.Position.Column
 
     map
     |> routeTiles

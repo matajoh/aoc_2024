@@ -4,10 +4,10 @@ open System
 open System.Collections.Generic
 
 type AStar<'S> when 'S: comparison(distance, heuristic, neighbors, goal) =
-    member this.Distance = distance
-    member this.Heuristic = heuristic
-    member this.Neighbors = neighbors
-    member this.Goal = goal
+    member _.Distance = distance
+    member _.Heuristic = heuristic
+    member _.Neighbors = neighbors
+    member _.Goal = goal
 
     static member private reconstructPath (cameFrom: Dictionary<'S, 'S>) current =
         let rec f path s =

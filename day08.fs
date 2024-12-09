@@ -76,12 +76,12 @@ let run =
         |> Grid.filterOut (Set.singleton '.')
 
     let antennae =
-        grid.table
+        grid.Table
         |> Map.toList
         |> List.groupBy snd
         |> List.map (fun (_, xs) -> xs |> List.map fst)
         |> List.map product
 
-    printfn "Part 1: %A" (part1 grid.rows grid.columns antennae)
-    printfn "Part 2: %A" (part2 grid.rows grid.columns antennae)
+    printfn "Part 1: %A" (part1 grid.Rows grid.Columns antennae)
+    printfn "Part 2: %A" (part2 grid.Rows grid.Columns antennae)
     printfn ""
