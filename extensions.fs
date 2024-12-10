@@ -30,8 +30,9 @@ module Grid =
     let tryFind key grid = Map.tryFind key grid.Table
 
     let map mapping grid =
-        { grid with
-            Table = Map.map mapping grid.Table }
+        { Rows = grid.Rows
+          Columns = grid.Columns
+          Table = Map.map mapping grid.Table }
 
     let filterMap (mapping: 'a -> Option<'b>) grid =
         let folder filtered key value =
@@ -56,10 +57,7 @@ module Grid =
             Table = Map.filter f grid.Table }
 
     let findValue x grid =
-        grid.Table
-        |> Map.toList
-        |> List.filter (fun (_, y) -> y = x)
-        |> List.map fst
+        grid.Table |> Map.toList |> List.filter (fun (_, y) -> y = x) |> List.map fst
 
     let byRow grid =
         grid.Table
@@ -73,7 +71,15 @@ module Grid =
         |> List.groupBy (fun ((_, c), _) -> c)
         |> List.map (fun (c, xs) -> c, (xs |> List.map (fun ((r, _), x) -> r, x)))
 
-    let create rows columns table = {Rows=rows; Columns=columns; Table=table}
+    let isInside grid (r, c) =
+        not (r < 0 || r >= grid.Rows || c < 0 || c >= grid.Columns)
+
+    let keys grid = Map.keys grid.Table
+
+    let create rows columns table =
+        { Rows = rows
+          Columns = columns
+          Table = table }
 
 
 module List =
