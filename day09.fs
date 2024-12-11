@@ -16,12 +16,12 @@ type Item =
 
     static member checksum i =
         if i.Id < 0 then
-            bigint 0
+            uint64 0
         else
-            let a = bigint i.Id
-            let b = bigint i.Pos
-            let c = bigint i.Size
-            a * (c * b + (c * (c - (bigint 1))) / (bigint 2))
+            let a = uint64 i.Id
+            let b = uint64 i.Pos
+            let c = uint64 i.Size
+            a * (c * b + (c * (c - (uint64 1))) / (uint64 2))
 
     static member take n i =
         { i with
@@ -128,6 +128,6 @@ let run =
                 { Id = FreeId; Pos = pos; Size = size })
         |> Seq.toList
 
-    printfn "Part 1: %A" (part1 (LinkedList diskMap))
-    printfn "Part 2: %A" (part2 (LinkedList diskMap))
+    printfn "Part 1: %d" (part1 (LinkedList diskMap))
+    printfn "Part 2: %d" (part2 (LinkedList diskMap))
     printfn ""

@@ -115,6 +115,16 @@ module List =
         }
         |> Seq.toList
 
+    let powrange x count =
+        seq {
+            let mutable x' = 1UL
+
+            for _ in 1..count do
+                yield x'
+                x' <- x' * x
+        }
+        |> Seq.toList
+
     let toGrid list =
         let rows = List.length list
         let columns = list |> List.map Seq.length |> List.max

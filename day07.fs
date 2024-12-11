@@ -7,7 +7,7 @@ open System.Numerics
 
 
 let concat a b =
-    ((string a) + (string b)) |> BigInteger.Parse
+    ((string a) + (string b)) |> uint64
 
 
 let apply operators a b ys =
@@ -47,7 +47,7 @@ let run =
 
     let toProblem list =
         match list with
-        | a :: b :: _ -> BigInteger.Parse a, String.split " " b |> List.map BigInteger.Parse
+        | a :: b :: _ -> uint64 a, String.split " " b |> List.map uint64
         | _ -> failwith "Invalid input"
 
     let problems =
@@ -56,6 +56,6 @@ let run =
         |> Seq.map toProblem
         |> Seq.toList
 
-    printfn "Part 1: %A" (part1 problems)
-    printfn "Part 2: %A" (part2 problems)
+    printfn "Part 1: %d" (part1 problems)
+    printfn "Part 2: %d" (part2 problems)
     printfn ""

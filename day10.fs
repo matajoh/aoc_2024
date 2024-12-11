@@ -43,7 +43,7 @@ let part2 trails =
 
 
 let run =
-    printfn "== Day 09 =="
+    printfn "== Day 10 =="
 
     let inline charToInt (c: char) = int c - int '0'
 
