@@ -74,7 +74,7 @@ module Grid =
     let isInside grid (r, c) =
         not (r < 0 || r >= grid.Rows || c < 0 || c >= grid.Columns)
 
-    let keys grid = Map.keys grid.Table
+    let keys grid = Map.keys grid.Table |> Seq.toList
 
     let create rows columns table =
         { Rows = rows
