@@ -211,3 +211,8 @@ type Rational =
 
 
 type rational = Rational
+
+let modulo a b =
+    match a % b with
+    | m when m < 0 -> b + m
+    | m -> m

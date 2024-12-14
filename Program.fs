@@ -14,6 +14,7 @@ let run i =
     | 11 -> Day11.run
     | 12 -> Day12.run
     | 13 -> Day13.run
+    | 14 -> Day14.run
     | _ -> printfn "Day %i not implemented" i
 
 [<EntryPoint>]
