@@ -4,47 +4,21 @@ open System.IO
 
 open Extensions
 
-type Direction =
-    | Up
-    | Right
-    | Down
-    | Left
-
-    static member right (r, c) d =
+type Direction with
+    static member right p d =
         match d with
-        | Up -> (r, c + 1)
-        | Right -> (r + 1, c)
-        | Down -> (r, c - 1)
-        | Left -> (r - 1, c)
-
-    static member next (r, c) d =
-        match d with
-        | Up -> (r - 1, c)
-        | Right -> (r, c + 1)
-        | Down -> (r + 1, c)
-        | Left -> (r, c - 1)
-
-    static member turnRight d =
-        match d with
-        | Up -> Right
-        | Right -> Down
-        | Down -> Left
-        | Left -> Up
-
-    static member turnLeft d =
-        match d with
-        | Up -> Left
-        | Left -> Down
-        | Down -> Right
-        | Right -> Up
+        | North -> { p with Column = p.Column + 1 }
+        | East -> { p with Row = p.Row + 1 }
+        | South -> { p with Column = p.Column - 1 }
+        | West -> { p with Row = p.Row - 1 }
 
     static member neighbors n =
-        [ Up; Right; Down; Left ] |> List.map (Direction.next n)
+        [ North; East; South; West ] |> List.map (Direction.next n)
 
 type Plot =
     { Id: int
       Crop: char
-      Tiles: Set<int * int> }
+      Tiles: Set<Position> }
 
     static member area p = Set.count p.Tiles
 
@@ -73,7 +47,7 @@ type Plot =
                     rightHandWalk (turns + 1) v' d' (Direction.next x d')
 
         let edges n =
-            [ Up; Down; Left; Right ]
+            [ North; South; West; East ]
             |> List.map (fun d -> Direction.turnRight d, Direction.next n d)
             |> List.filter ((snd >> (Plot.isOutside p)))
 

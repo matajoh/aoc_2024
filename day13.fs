@@ -5,14 +5,14 @@ open System.Text.RegularExpressions
 
 open Maths
 
-type Position = { X: rational; Y: rational }
+type Point = { X: rational; Y: rational }
 
 type Button = { AddX: rational; AddY: rational }
 
 type ClawMachine =
     { A: Button
       B: Button
-      Prize: Position }
+      Prize: Point }
 
 let parse machines =
     seq {

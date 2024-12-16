@@ -4,15 +4,16 @@ open System.IO
 
 open Extensions
 
-let neighbors pos =
-    let r, c = pos
 
-    seq {
-        r - 1, c
-        r + 1, c
-        r, c - 1
-        r, c + 1
-    }
+type Position with
+    static member neighbors p =
+        seq {
+            { p with Row = p.Row - 1 }
+            { p with Row = p.Row + 1 }
+            { p with Column = p.Column - 1 }
+            { p with Column = p.Column + 1 }
+        }
+
 
 let rec followTrail map path a =
     let x = Grid.find a map
@@ -25,7 +26,8 @@ let rec followTrail map path a =
     if x = 9 then
         Set.singleton (a :: path)
     else
-        neighbors a
+        a
+        |> Position.neighbors
         |> Seq.filter validPos
         |> Seq.map (followTrail map (a :: path))
         |> Set.unionMany

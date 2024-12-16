@@ -5,65 +5,53 @@ open System.IO
 open Extensions
 open Maths
 
-let add (a0, a1) (b0, b1) = a0 + b0, a1 + b1
-let sub (a0, a1) (b0, b1) = a0 - b0, a1 - b1
-let div (a, b) d = a / d, b / d
-let negate (a, b) = -a, -b
-
 
 let product list =
     list |> List.allPairs list |> List.filter (fun (a, b) -> a <> b)
 
 
-let within rows columns (a, b) =
-    not (a < 0 || a >= rows || b < 0 || b >= columns)
-
-
-let findAntinodes rows columns antennae =
+let findAntinodes grid antennae =
     antennae
-    |> List.collect (fun (a, b) -> [ add a (sub a b); add b (sub b a) ])
-    |> List.filter (within rows columns)
+    |> List.collect (fun (a, b) -> [ a + (a - b); b + (b - a) ])
+    |> List.filter (Grid.isInside grid)
 
 
-let part1 rows columns antennae =
-    antennae |> List.collect (findAntinodes rows columns) |> set |> Set.count
+let part1 grid antennae =
+    antennae |> List.collect (findAntinodes grid) |> set |> Set.count
 
 
-let drawLine rows columns (a, b) =
+let drawLine grid (a, b) =
     let horizontal r =
-        List.arange 0 (columns - 1) |> List.map (fun c -> (r, c))
+        List.arange 0 (grid.Columns - 1) |> List.map (fun c -> { Row = r; Column = c })
 
     let vertical c =
-        List.arange 0 (rows - 1) |> List.map (fun r -> (r, c))
+        List.arange 0 (grid.Rows - 1) |> List.map (fun r -> { Row = r; Column = c })
 
     let rec line d xs =
         match xs with
-        | x :: _ when within rows columns x -> line d (add x d :: xs)
+        | x :: _ when Grid.isInside grid x -> line d (x + d :: xs)
         | _ -> List.tail xs
 
-    let diff = sub b a
+    let diff = b - a
 
     match diff with
-    | 0, _ -> horizontal (fst a)
-    | _, 0 -> vertical (snd a)
-    | d0, d1 when d0 > d1 ->
+    | { Row = 0 } -> horizontal a.Row
+    | { Column = 0 } -> vertical a.Column
+    | { Row = d0; Column = d1 } when d0 > d1 ->
         let gcd = gcd d0 d1
-        let s = div diff gcd
-        List.append (line s [ a ]) (line (negate s) [ a ])
-    | d0, d1 when d0 < d1 ->
+        let s = diff / gcd
+        List.append (line s [ a ]) (line (-s) [ a ])
+    | { Row = d0; Column = d1 } when d0 < d1 ->
         let gcd = gcd d1 d0
-        let s = div diff gcd
-        List.append (line s [ a ]) (line (negate s) [ a ])
+        let s = diff / gcd
+        List.append (line s [ a ]) (line (-s) [ a ])
     | _ ->
-        let s = (1, 1)
-        List.append (line s [ a ]) (line (negate s) [ a ])
+        let s = { Row = 1; Column = 1 }
+        List.append (line s [ a ]) (line (-s) [ a ])
 
 
-let part2 rows columns antennae =
-    antennae
-    |> List.collect (List.collect (drawLine rows columns))
-    |> set
-    |> Set.count
+let part2 grid antennae =
+    antennae |> List.collect (List.collect (drawLine grid)) |> set |> Set.count
 
 
 let run =
@@ -82,6 +70,6 @@ let run =
         |> List.map (fun (_, xs) -> xs |> List.map fst)
         |> List.map product
 
-    printfn "Part 1: %A" (part1 grid.Rows grid.Columns antennae)
-    printfn "Part 2: %A" (part2 grid.Rows grid.Columns antennae)
+    printfn "Part 1: %d" (part1 grid antennae)
+    printfn "Part 2: %d" (part2 grid antennae)
     printfn ""

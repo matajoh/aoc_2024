@@ -1,50 +1,85 @@
 module Algorithms
 
-open System
-open System.Collections.Generic
 
-type AStar<'S> when 'S: comparison(distance, heuristic, neighbors, goal) =
-    member _.Distance = distance
-    member _.Heuristic = heuristic
-    member _.Neighbors = neighbors
-    member _.Goal = goal
+type astar<'S> when 'S: comparison =
+    { Distance: 'S -> 'S -> int
+      Heuristic: 'S -> int
+      Neighbors: 'S -> 'S seq
+      Goal: 'S -> bool }
 
-    static member private reconstructPath (cameFrom: Dictionary<'S, 'S>) current =
-        let rec f path s =
-            if cameFrom.ContainsKey(s) then
-                f (s :: path) cameFrom[s]
+
+type state<'S> when 'S: comparison =
+    { Queue: Set<int * 'S>
+      GScore: Map<'S, int>
+      CameFrom: Map<'S, 'S list> }
+
+
+module private State =
+    let create s =
+        { Queue = Set.singleton (0, s)
+          GScore = Map.ofList [ s, 0 ]
+          CameFrom = Map.empty }
+
+    let addNeighbor x y gs fs s =
+        { s with
+            Queue = Set.add (fs, y) s.Queue
+            GScore = Map.add y gs s.GScore
+            CameFrom = Map.add y [ x ] s.CameFrom }
+
+    let addAlternatePath x y s =
+        let xs = Map.find y s.CameFrom
+
+        { s with
+            CameFrom = Map.add y (x :: xs) s.CameFrom }
+
+    let dequeue state =
+        let x = Set.minElement state.Queue
+
+        x,
+        { state with
+            Queue = Set.remove x state.Queue }
+
+    let gscore x state = Map.find x state.GScore
+
+    let reconstructPaths x s =
+        let rec f path y =
+            match Map.tryFind y s.CameFrom with
+            | Some parents -> parents |> Seq.collect (f (y :: path))
+            | None -> seq { y :: path }
+
+        f [] x
+
+
+module AStar =
+    let FindMinPaths start astar =
+        let addNeighbors x xGS s y =
+            let yGS = xGS + astar.Distance x y
+
+            let addNeighbor () =
+                let yFS = yGS + astar.Heuristic y
+                State.addNeighbor x y yGS yFS s
+
+            match Map.tryFind y s.GScore with
+            | None -> addNeighbor ()
+            | Some gs when yGS < gs -> addNeighbor ()
+            | Some gs when yGS = gs -> State.addAlternatePath x y s
+            | _ -> s
+
+        let rec f s =
+            if Set.isEmpty s.Queue then
+                Seq.empty
             else
-                path
+                let (_, x), s' = State.dequeue s
+                let gs = State.gscore x s
 
-        f [] current
-
-    member public this.FindMinPath start =
-        let queue = new PriorityQueue<'S, int>()
-        queue.Enqueue(start, 0)
-        let gScore = new Dictionary<'S, int>()
-        gScore[start] <- 0
-        let cameFrom = new Dictionary<'S, 'S>()
-
-        let rec f (queue: PriorityQueue<'S, int>) (gScore: Dictionary<'S, int>) (cameFrom: Dictionary<'S, 'S>) =
-            if queue.Count = 0 then
-                failwith "Unable to find a path to the goal"
-            else
-                let current = queue.Dequeue()
-
-                if this.Goal current then
-                    AStar.reconstructPath cameFrom current
+                if astar.Goal x then
+                    State.reconstructPaths x s
                 else
-                    let gscore = gScore[current]
+                    astar.Neighbors x |> Seq.fold (addNeighbors x gs) s' |> f
 
-                    for neighbor in this.Neighbors current do
-                        let tentative_gscore = gscore + (this.Distance current neighbor)
+        State.create start |> f
 
-                        if tentative_gscore < gScore.GetValueOrDefault(neighbor, Int32.MaxValue) then
-                            cameFrom[neighbor] <- current
-                            gScore[neighbor] <- tentative_gscore
-                            let fScore = tentative_gscore + this.Heuristic neighbor
-                            queue.Enqueue(neighbor, fScore)
-
-                    f queue gScore cameFrom
-
-        f queue gScore cameFrom
+    let FindMinPath start astar =
+        match Seq.tryHead (FindMinPaths start astar) with
+        | Some path -> path
+        | None -> failwith "Unable to find path to goal"

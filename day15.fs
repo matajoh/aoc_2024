@@ -12,80 +12,54 @@ type Tile =
     | BoxRight
 
 
-type Position = { Row: int; Column: int }
-
-
-type Move =
-    | Up
-    | Right
-    | Down
-    | Left
-
+type Direction with
     static member fromChar c =
         match c with
-        | '^' -> Up
-        | '>' -> Right
-        | 'v' -> Down
-        | '<' -> Left
+        | '^' -> North
+        | '>' -> East
+        | 'v' -> South
+        | '<' -> West
         | _ -> failwith "Invalid direction"
 
-    static member next pos m =
-        match m with
-        | Up -> { pos with Row = pos.Row - 1 }
-        | Right -> { pos with Column = pos.Column + 1 }
-        | Down -> { pos with Row = pos.Row + 1 }
-        | Left -> { pos with Column = pos.Column - 1 }
 
-
-type Robot =
-    { Position: Position; Moves: Move list }
+type Robot = { P: Position; Moves: Direction list }
 
 
 type Warehouse =
-    { Rows: int
-      Columns: int
-      Tiles: Map<Position, Tile>
+    { G: grid<Tile>
       Robot: Robot }
 
     static member fromGrid grid moves =
-        let tiles =
-            grid.Table
-            |> Map.toList
-            |> List.choose (fun ((r, c), t) ->
-                let pos = { Row = r; Column = c }
+        let toTile c =
+            match c with
+            | '#' -> Some Wall
+            | 'O' -> Some Box
+            | _ -> None
 
-                match t with
-                | '#' -> Some(pos, Wall)
-                | 'O' -> Some(pos, Box)
-                | _ -> None)
-            |> Map.ofList
+        let g = Grid.choose toTile grid
+        let pos = Grid.findValue '@' grid |> List.head
+        let robot = { P = pos; Moves = moves }
 
-        let (r, c) = Grid.findValue '@' grid |> List.head
-
-        let robot =
-            { Position = { Row = r; Column = c }
-              Moves = moves }
-
-        { Rows = grid.Rows
-          Columns = grid.Columns
-          Tiles = tiles
-          Robot = robot }
+        { G = g; Robot = robot }
 
     static member step warehouse =
         let rec findEmpty boxes p m =
-            match Map.tryFind p warehouse.Tiles with
+            match Map.tryFind p warehouse.G.Table with
             | Some Wall -> None
-            | Some Box -> findEmpty ((p, Box) :: boxes) (Move.next p m) m
+            | Some Box -> findEmpty ((p, Box) :: boxes) (Direction.next p m) m
             | Some BoxLeft ->
                 let l = p
-                let r = Move.next l Right
+                let r = Direction.next l East
 
                 match m with
-                | Right -> findEmpty ((l, BoxLeft) :: (r, BoxRight) :: boxes) (Move.next r m) m
-                | Left -> failwith "Invalid state"
+                | East -> findEmpty ((l, BoxLeft) :: (r, BoxRight) :: boxes) (Direction.next r m) m
+                | West -> failwith "Invalid state"
                 | _ ->
-                    let lEmpty = findEmpty ((l, BoxLeft) :: (r, BoxRight) :: boxes) (Move.next l m) m
-                    let rEmpty = findEmpty ((l, BoxLeft) :: (r, BoxRight) :: boxes) (Move.next r m) m
+                    let lEmpty =
+                        findEmpty ((l, BoxLeft) :: (r, BoxRight) :: boxes) (Direction.next l m) m
+
+                    let rEmpty =
+                        findEmpty ((l, BoxLeft) :: (r, BoxRight) :: boxes) (Direction.next r m) m
 
                     match lEmpty, rEmpty with
                     | None, _ -> None
@@ -93,14 +67,17 @@ type Warehouse =
                     | Some lhs, Some rhs -> Some(List.append lhs rhs)
             | Some BoxRight ->
                 let r = p
-                let l = Move.next r Left
+                let l = Direction.next r West
 
                 match m with
-                | Left -> findEmpty ((l, BoxLeft) :: (r, BoxRight) :: boxes) (Move.next l m) m
-                | Right -> failwith "Invalid state"
+                | West -> findEmpty ((l, BoxLeft) :: (r, BoxRight) :: boxes) (Direction.next l m) m
+                | East -> failwith "Invalid state"
                 | _ ->
-                    let lEmpty = findEmpty ((l, BoxLeft) :: (r, BoxRight) :: boxes) (Move.next l m) m
-                    let rEmpty = findEmpty ((l, BoxLeft) :: (r, BoxRight) :: boxes) (Move.next r m) m
+                    let lEmpty =
+                        findEmpty ((l, BoxLeft) :: (r, BoxRight) :: boxes) (Direction.next l m) m
+
+                    let rEmpty =
+                        findEmpty ((l, BoxLeft) :: (r, BoxRight) :: boxes) (Direction.next r m) m
 
                     match lEmpty, rEmpty with
                     | None, _ -> None
@@ -112,7 +89,7 @@ type Warehouse =
             match boxes with
             | [] -> tiles
             | (p, t) :: xs ->
-                let t' = tiles |> Map.remove p |> Map.add (Move.next p m) t
+                let t' = tiles |> Map.remove p |> Map.add (Direction.next p m) t
                 moveBoxes t' m xs
 
         let r = warehouse.Robot
@@ -120,34 +97,34 @@ type Warehouse =
         match r.Moves with
         | [] -> None
         | x :: xs ->
-            match findEmpty [] (Move.next r.Position x) x with
+            match findEmpty [] (Direction.next r.P x) x with
             | Some boxes ->
                 let boxes' =
                     boxes
                     |> List.distinct
                     |> match x with
-                       | Up -> List.sortBy (fun (p, _) -> p.Row)
-                       | Right -> List.sortByDescending (fun (p, _) -> p.Column)
-                       | Down -> List.sortByDescending (fun (p, _) -> p.Row)
-                       | Left -> List.sortBy (fun (p, _) -> p.Column)
+                       | North -> List.sortBy (fun (p, _) -> p.Row)
+                       | East -> List.sortByDescending (fun (p, _) -> p.Column)
+                       | South -> List.sortByDescending (fun (p, _) -> p.Row)
+                       | West -> List.sortBy (fun (p, _) -> p.Column)
 
-                let tiles = moveBoxes warehouse.Tiles x boxes'
+                let table = moveBoxes warehouse.G.Table x boxes'
 
                 let robot =
                     { r with
-                        Position = Move.next r.Position x
+                        P = Direction.next r.P x
                         Moves = xs }
 
                 Some
                     { warehouse with
-                        Tiles = tiles
+                        G = { warehouse.G with Table = table }
                         Robot = robot }
             | None ->
                 let robot = { r with Moves = xs }
                 Some { warehouse with Robot = robot }
 
     static member gps warehouse =
-        warehouse.Tiles
+        warehouse.G.Table
         |> Map.toList
         |> List.choose (fun (k, v) ->
             if v = Box || v = BoxLeft then
@@ -165,20 +142,20 @@ type Warehouse =
             | Box -> [ (l, BoxLeft); (r, BoxRight) ]
             | _ -> failwith "invalid state"
 
-        let tiles = warehouse.Tiles |> Map.toList |> List.collect f |> Map.ofList
+        let table = warehouse.G.Table |> Map.toList |> List.collect f |> Map.ofList
 
         let r = warehouse.Robot
 
         let r' =
             { r with
-                Position =
-                    { r.Position with
-                        Column = r.Position.Column * 2 } }
+                P = { r.P with Column = r.P.Column * 2 } }
 
         { warehouse with
-            Tiles = tiles
-            Robot = r'
-            Columns = warehouse.Columns * 2 }
+            G =
+                { warehouse.G with
+                    Columns = warehouse.G.Columns * 2
+                    Table = table }
+            Robot = r' }
 
 
 let rec parseMap mapLines lines =
@@ -206,7 +183,7 @@ let run =
     printfn "== Day 15 =="
 
     let grid, lines = File.ReadLines("inputs/day15.txt") |> Seq.toList |> parseMap []
-    let moves = lines |> Seq.collect (Seq.map Move.fromChar) |> Seq.toList
+    let moves = lines |> Seq.collect (Seq.map Direction.fromChar) |> Seq.toList
     let warehouse = Warehouse.fromGrid grid moves
 
     printfn "Part 1: %d" (part1 warehouse)

@@ -19,10 +19,77 @@ module Array2D =
                     yield (r, c)
         }
 
+
+type Position =
+    {Row: int; Column: int}
+
+    static member distance a b = abs (a.Row - b.Row) + abs (a.Column - b.Column)
+
+    static member row p = p.Row
+
+    static member column p = p.Column
+
+    static member add a b = {Row=a.Row+b.Row; Column=a.Column+b.Column}
+
+    static member sub a b = {Row=a.Row-b.Row; Column=a.Column-b.Column}
+
+    static member div a b = {Row=a.Row / b; Column=a.Column / b}
+
+    static member negate a = {Row=(-a.Row); Column=(-a.Column)}
+
+    static member (+)(a, b) = Position.add a b
+
+    static member (-)(a, b) = Position.sub a b
+
+    static member (~-)(a) = Position.negate a
+
+    static member (/)(a, b) = Position.div a b
+
+
+type Direction =
+    | North
+    | East
+    | South
+    | West
+
+    static member turnRight d =
+        match d with
+        | North -> East
+        | East -> South
+        | South -> West
+        | West -> North
+
+    static member turnLeft d =
+        match d with
+        | North -> West
+        | West -> South
+        | South -> East
+        | East -> North
+
+    static member next p d =
+        match d with
+        | North -> {p with Row=p.Row-1}
+        | East -> {p with Column=p.Column+1}
+        | South -> {p with Row=p.Row+1}
+        | West -> {p with Column=p.Column-1}
+
+    static member numTurns a b =
+        let toInt d =
+            match d with
+            | North -> 0
+            | East -> 1
+            | South -> 2
+            | West -> 3
+        
+        let diff = abs (toInt a - toInt b)
+        if diff = 3 then 1 else diff
+
+
 type grid<'a> when 'a: comparison =
-    { Table: Map<int * int, 'a>
+    { Table: Map<Position, 'a>
       Rows: int
       Columns: int }
+
 
 module Grid =
     let find key grid = Map.find key grid.Table
@@ -34,15 +101,21 @@ module Grid =
           Columns = grid.Columns
           Table = Map.map mapping grid.Table }
 
-    let filterMap (mapping: 'a -> Option<'b>) grid =
-        let folder filtered key value =
-            match mapping value with
-            | Some v -> Map.add key v filtered
-            | None -> filtered
+    let choose mapping grid =
+        let choose (k, v) =
+            match v with
+            | Some x -> Some (k, x)
+            | None -> None
 
-        { Rows = grid.Rows
-          Columns = grid.Columns
-          Table = Map.fold folder grid.Table Map.empty }
+        let table =
+            grid.Table
+            |> Map.toList
+            |> List.map (fun (k, v) -> k, mapping v)
+            |> List.choose choose
+            |> Map.ofList
+        
+        {Rows=grid.Rows; Columns=grid.Columns; Table=table}
+
 
     let filter (vals: Set<'a>) grid =
         let f _ x = Set.contains x vals
@@ -62,17 +135,17 @@ module Grid =
     let byRow grid =
         grid.Table
         |> Map.toList
-        |> List.groupBy (fun ((r, _), _) -> r)
-        |> List.map (fun (r, xs) -> r, (xs |> List.map (fun ((_, c), x) -> c, x)))
+        |> List.groupBy (fst >> Position.row)
+        |> List.map (fun (r, xs) -> r, (xs |> List.map (fun (p, x) -> Position.column p, x)))
 
     let byColumn grid =
         grid.Table
         |> Map.toList
-        |> List.groupBy (fun ((_, c), _) -> c)
-        |> List.map (fun (c, xs) -> c, (xs |> List.map (fun ((r, _), x) -> r, x)))
+        |> List.groupBy (fst >> Position.column)
+        |> List.map (fun (c, xs) -> c, (xs |> List.map (fun (p, x) -> Position.row p, x)))
 
-    let isInside grid (r, c) =
-        not (r < 0 || r >= grid.Rows || c < 0 || c >= grid.Columns)
+    let isInside grid p =
+        not (p.Row < 0 || p.Row >= grid.Rows || p.Column < 0 || p.Column >= grid.Columns)
 
     let keys grid = Map.keys grid.Table |> Seq.toList
 
@@ -80,6 +153,8 @@ module Grid =
         { Rows = rows
           Columns = columns
           Table = table }
+
+    let table grid = grid.Table
 
 
 module List =
@@ -133,7 +208,7 @@ module List =
             list
             |> List.map (Seq.indexed >> Seq.toList)
             |> List.indexed
-            |> List.collect (fun (r, xs) -> xs |> List.map (fun (c, x) -> (r, c), x))
+            |> List.collect (fun (r, xs) -> xs |> List.map (fun (c, x) -> {Row=r; Column=c}, x))
             |> Map.ofList
 
         Grid.create rows columns table

@@ -5,19 +5,9 @@ open System.IO
 open Extensions
 
 
-type Position = { Row: int; Column: int }
-
-
-type Direction =
-    | Up
-    | Down
-    | Left
-    | Right
-
-
 type Guard =
-    { Position: Position
-      Direction: Direction
+    { P: Position
+      D: Direction
       IsOutside: bool }
 
 
@@ -53,21 +43,23 @@ type LabMap =
 
         let cols = grid |> Grid.byColumn |> List.map snd |> List.map (convert grid.Columns)
 
-        let r, c = Grid.findValue '^' grid |> List.head
+        let p = Grid.findValue '^' grid |> List.head
 
         { Rows = rows
           Columns = cols
           Guard =
-            { Position = { Row = r + 1; Column = c + 1 }
-              Direction = Up
+            { P =
+                { Row = p.Row + 1
+                  Column = p.Column + 1 }
+              D = North
               IsOutside = false } }
 
     static member moveGuard map =
         let g = map.Guard
-        let p, d = g.Position, g.Direction
+        let p, d = g.P, g.D
 
         let value, list =
-            if d = Left || d = Right then
+            if d = West || d = East then
                 Open p.Column, map.Rows.[p.Row - 1]
             else
                 Open p.Row, map.Columns.[p.Column - 1]
@@ -75,45 +67,42 @@ type LabMap =
         let i = List.binarySearch Tile.compare value list |> (~~~)
 
         let t =
-            if d = Down || d = Right then
+            if d = South || d = East then
                 List.item i list
             else
                 List.item (i - 1) list
 
         let p', d', o =
             match d, t with
-            | Up, Obstruction i -> { p with Row = i + 1 }, Right, false
-            | Up, Exit i -> { p with Row = i + 1 }, d, true
-            | Right, Obstruction i -> { p with Column = i - 1 }, Down, false
-            | Right, Exit i -> { p with Column = i - 1 }, d, true
-            | Down, Obstruction i -> { p with Row = i - 1 }, Left, false
-            | Down, Exit i -> { p with Row = i - 1 }, d, true
-            | Left, Obstruction i -> { p with Column = i + 1 }, Up, false
-            | Left, Exit i -> { p with Column = i + 1 }, d, true
+            | North, Obstruction i -> { p with Row = i + 1 }, East, false
+            | North, Exit i -> { p with Row = i + 1 }, d, true
+            | East, Obstruction i -> { p with Column = i - 1 }, South, false
+            | East, Exit i -> { p with Column = i - 1 }, d, true
+            | South, Obstruction i -> { p with Row = i - 1 }, West, false
+            | South, Exit i -> { p with Row = i - 1 }, d, true
+            | West, Obstruction i -> { p with Column = i + 1 }, North, false
+            | West, Exit i -> { p with Column = i + 1 }, d, true
             | _ -> failwith "Invalid result from search"
 
         { map with
-            Guard =
-                { Position = p'
-                  Direction = d'
-                  IsOutside = o } }
+            Guard = { P = p'; D = d'; IsOutside = o } }
 
-    static member addObstruction m (r, c) =
-        let row = m.Rows.[r - 1]
-        let col = m.Columns.[c - 1]
-        let ri = List.binarySearch Tile.compare (Open c) row |> (~~~)
+    static member addObstruction m p =
+        let row = m.Rows.[p.Row - 1]
+        let col = m.Columns.[p.Column - 1]
+        let ri = List.binarySearch Tile.compare (Open p.Column) row |> (~~~)
 
         if ri < 0 then
             None
         else
-            let ci = List.binarySearch Tile.compare (Open r) col |> (~~~)
-            let row' = List.insertAt ri (Obstruction c) row
-            let col' = List.insertAt ci (Obstruction r) col
+            let ci = List.binarySearch Tile.compare (Open p.Row) col |> (~~~)
+            let row' = List.insertAt ri (Obstruction p.Column) row
+            let col' = List.insertAt ci (Obstruction p.Row) col
 
             Some
                 { m with
-                    Rows = List.updateAt (r - 1) row' m.Rows
-                    Columns = List.updateAt (c - 1) col' m.Columns }
+                    Rows = List.updateAt (p.Row - 1) row' m.Rows
+                    Columns = List.updateAt (p.Column - 1) col' m.Columns }
 
 
 let rec patrol route visited map =
@@ -126,14 +115,14 @@ let rec patrol route visited map =
 
 
 let expand (a, b) =
-    let p0, d = a.Position, a.Direction
-    let p1 = b.Position
+    let p0, d = a.P, a.D
+    let p1 = b.P
 
     match d, p0, p1 with
-    | Up, { Row = r1; Column = c }, { Row = r0 } -> List.arange r0 r1 |> List.map (fun r -> (r, c))
-    | Right, { Row = r; Column = c0 }, { Column = c1 } -> List.arange c0 c1 |> List.map (fun c -> (r, c))
-    | Down, { Row = r0; Column = c }, { Row = r1 } -> List.arange r0 r1 |> List.map (fun r -> (r, c))
-    | Left, { Row = r; Column = c1 }, { Column = c0 } -> List.arange c0 c1 |> List.map (fun c -> (r, c))
+    | North, { Row = r1 }, { Row = r0 } -> List.arange r0 r1 |> List.map (fun r -> { p0 with Row = r })
+    | East, { Column = c0 }, { Column = c1 } -> List.arange c0 c1 |> List.map (fun c -> { p0 with Column = c })
+    | South, { Row = r0 }, { Row = r1 } -> List.arange r0 r1 |> List.map (fun r -> { p0 with Row = r })
+    | West, { Column = c1 }, { Column = c0 } -> List.arange c0 c1 |> List.map (fun c -> { p0 with Column = c })
 
 
 let routeTiles map =
@@ -149,11 +138,9 @@ let part1 map = map |> routeTiles |> Set.count
 
 
 let part2 map =
-    let initPos = map.Guard.Position.Row, map.Guard.Position.Column
-
     map
     |> routeTiles
-    |> Set.remove initPos
+    |> Set.remove map.Guard.P
     |> Set.toSeq
     |> Seq.map (LabMap.addObstruction map)
     |> Seq.choose id
@@ -164,9 +151,6 @@ let part2 map =
 
 let run =
     printfn "== Day 06 =="
-
-    let seqToRow (r, s) =
-        s |> Seq.indexed |> Seq.map (fun (c, x) -> r, c, x) |> Seq.toList
 
     let map =
         File.ReadLines("inputs/day06.txt") |> Seq.toList |> List.toGrid |> LabMap.ofGrid
