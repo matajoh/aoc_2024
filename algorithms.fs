@@ -51,7 +51,7 @@ module private State =
 
 
 module AStar =
-    let FindMinPaths start astar =
+    let findMinPaths start astar =
         let addNeighbors x xGS s y =
             let yGS = xGS + astar.Distance x y
 
@@ -79,7 +79,9 @@ module AStar =
 
         State.create start |> f
 
-    let FindMinPath start astar =
-        match Seq.tryHead (FindMinPaths start astar) with
+    let tryFindMinPath start astar = Seq.tryHead (findMinPaths start astar)
+
+    let findMinPath start astar =
+        match tryFindMinPath start astar with
         | Some path -> path
         | None -> failwith "Unable to find path to goal"

@@ -73,7 +73,7 @@ let run =
           Heuristic = Reindeer.position >> Position.distance goal
           Neighbors = Reindeer.neighbors maze
           Goal = Reindeer.position >> (=) goal }
-        |> AStar.FindMinPaths { P = start; D = East }
+        |> AStar.findMinPaths { P = start; D = East }
         |> Seq.toList
 
     printfn "Part 1: %d" (part1 paths)
