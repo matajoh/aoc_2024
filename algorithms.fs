@@ -1,5 +1,7 @@
 module Algorithms
 
+open System
+
 
 type astar<'S> when 'S: comparison =
     { Distance: 'S -> 'S -> int
@@ -85,3 +87,37 @@ module AStar =
         match tryFindMinPath start astar with
         | Some path -> path
         | None -> failwith "Unable to find path to goal"
+
+
+type prefixTreeNode =
+    { Children: Map<char, prefixTreeNode>
+      Prefix: string
+      IsLeaf: bool }
+
+
+module PrefixTree =
+    let findPrefixes str node =
+        let rec f ps s n =
+            match s with
+            | [] -> ps
+            | x :: xs ->
+                match Map.tryFind x n.Children with
+                | Some n' -> if n'.IsLeaf then f (n'.Prefix :: ps) xs n' else f ps xs n'
+                | None -> ps
+
+        f [] str node
+
+    let build strings =
+        let rec f p s =
+            let children =
+                s
+                |> List.filter (List.isEmpty >> not)
+                |> List.groupBy List.head
+                |> List.map (fun (c, group) -> (c, f (c :: p) (group |> List.map List.tail)))
+                |> Map.ofList
+
+            { Children = children
+              Prefix = p |> List.rev |> List.toArray |> String
+              IsLeaf = List.exists List.isEmpty s }
+
+        f [] strings
