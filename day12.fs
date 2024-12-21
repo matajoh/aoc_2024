@@ -13,7 +13,7 @@ type Direction with
         | West -> { p with Row = p.Row - 1 }
 
     static member neighbors n =
-        [ North; East; South; West ] |> List.map (Direction.next n)
+        Direction.Values |> List.map (Direction.next n)
 
 type Plot =
     { Id: int
@@ -47,7 +47,7 @@ type Plot =
                     rightHandWalk (turns + 1) v' d' (Direction.next x d')
 
         let edges n =
-            [ North; South; West; East ]
+            Direction.Values
             |> List.map (fun d -> Direction.turnRight d, Direction.next n d)
             |> List.filter ((snd >> (Plot.isOutside p)))
 

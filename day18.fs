@@ -21,7 +21,7 @@ type MemorySpace =
             else
                 true
 
-        [ North; East; South; West ] |> Seq.map (Direction.next p) |> Seq.filter valid
+        Direction.Values |> Seq.map (Direction.next p) |> Seq.filter valid
 
     static member atTime t m =
         { m with

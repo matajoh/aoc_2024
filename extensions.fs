@@ -66,12 +66,14 @@ type Direction =
         | South -> East
         | East -> North
 
-    static member next p d =
+    static member move n p d =
         match d with
-        | North -> {p with Row=p.Row-1}
-        | East -> {p with Column=p.Column+1}
-        | South -> {p with Row=p.Row+1}
-        | West -> {p with Column=p.Column-1}
+        | North -> {p with Row=p.Row-n}
+        | East -> {p with Column=p.Column+n}
+        | South -> {p with Row=p.Row+n}
+        | West -> {p with Column=p.Column-n}
+
+    static member next = Direction.move 1
 
     static member numTurns a b =
         let toInt d =
@@ -83,6 +85,8 @@ type Direction =
         
         let diff = abs (toInt a - toInt b)
         if diff = 3 then 1 else diff
+
+    static member Values = [North; East; South; West]
 
 
 type grid<'a> when 'a: comparison =
@@ -116,6 +120,7 @@ module Grid =
         
         {Rows=grid.Rows; Columns=grid.Columns; Table=table}
 
+    let add k v g = {g with Table=Map.add k v g.Table}
 
     let filter (vals: Set<'a>) grid =
         let f _ x = Set.contains x vals

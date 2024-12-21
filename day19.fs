@@ -52,7 +52,7 @@ let part2 arrangements = arrangements |> List.sum
 
 
 let run =
-    printfn "== Day 18 =="
+    printfn "== Day 19 =="
 
     let arrangements =
         File.ReadLines("inputs/day19.txt")
