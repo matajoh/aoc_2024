@@ -121,3 +121,78 @@ module PrefixTree =
               IsLeaf = List.exists List.isEmpty s }
 
         f [] strings
+
+
+type kdTree<'p> =
+    { Distance: 'p -> 'p -> int
+      Select: int -> 'p -> int
+      MaxDimension: int
+      MaxPerNode: int }
+
+
+type kdTreeNode<'p> =
+    { Left: Option<kdTreeNode<'p>>
+      Right: Option<kdTreeNode<'p>>
+      Dimension: int
+      Split: int
+      Points: 'p list }
+
+
+module KDTree =
+    let isLeaf n = n.Dimension = -1
+
+    let build points kdtree =
+        let rec f points =
+            match points with
+            | [] -> None
+            | _ when List.length points < kdtree.MaxPerNode ->
+                Some
+                    { Left = None
+                      Right = None
+                      Dimension = (-1)
+                      Split = 0
+                      Points = points }
+            | _ ->
+                let d, _, s =
+                    seq {
+                        for i in 0 .. kdtree.MaxDimension do
+                            let dim = points |> List.map (kdtree.Select i) |> List.sort
+                            yield i, List.last dim - List.head dim, dim.[List.length dim / 2]
+                    }
+                    |> Seq.maxBy (fun (_, b, _) -> b)
+
+                let left = points |> List.filter (fun p -> kdtree.Select d p < s) |> f
+                let right = points |> List.filter (fun p -> kdtree.Select d p >= s) |> f
+
+                Some
+                    { Left = left
+                      Right = right
+                      Dimension = d
+                      Split = s
+                      Points = [] }
+
+        f points |> Option.get
+
+    let search kdtree r d p =
+        let rec f ns frontier =
+            match frontier with
+            | [] -> List.concat ns
+            | None :: xs -> f ns xs
+            | (Some x) :: xs ->
+                if isLeaf x then
+                    let n = x.Points |> List.filter (fun p' -> kdtree.Distance p p' <= d)
+                    f (n :: ns) xs
+                else
+                    let pi = kdtree.Select x.Dimension p
+
+                    if pi < x.Split then
+                        if x.Split - pi <= d then
+                            f ns (x.Left :: x.Right :: xs)
+                        else
+                            f ns (x.Left :: xs)
+                    else if pi - x.Split <= d then
+                        f ns (x.Right :: x.Left :: xs)
+                    else
+                        f ns (x.Right :: xs)
+
+        f [] [ Some r ]

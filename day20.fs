@@ -2,7 +2,9 @@ module Day20
 
 open System.IO
 
+open Algorithms
 open Extensions
+open System.Collections.Generic
 
 
 type Tile =
@@ -37,53 +39,50 @@ let rec findPath path m p =
         |> findPath (p :: path) m
 
 
-let rec markPath path i m =
-    if i = List.length path then
-        m
-    else
+let rec markPath path tiles =
+    let m = new Dictionary<Position, Tile>()
+
+    for k, v in Map.toSeq tiles do
+        m.[k] <- v
+
+    for i, p in List.indexed path do
         let j = List.length path - 1 - i
-        let p = path.[i]
-        m |> Map.add p (Path(i, j)) |> markPath path (i + 1)
+        m.[p] <- Path(i, j)
 
+    m
 
-let findCheats n map path =
+let findCheats nearestNeighbors n (map: Dictionary<Position, Tile>) path =
     let length = List.length path - 1
 
     let tryCheat p0 t0 p1 =
-        let d = Position.distance p0 p1
-
-        if d <= n then
-            match t0, Map.find p1 map with
+        if p0 < p1 then
+            match t0, map.[p1] with
             | Path(s0, e0), Path(s1, e1) ->
-                let cheat = length - d - min s0 s1 - min e0 e1
+                let cheat = length - (Position.distance p0 p1) - min s0 s1 - min e0 e1
 
-                if cheat > 0 then Some cheat else None
+                if cheat >= 100 then Some cheat else None
             | _ -> failwith "Invalid state"
         else
             None
 
-    let find p0 ps =
-        let t0 = Map.find p0 map
-        ps |> List.choose (tryCheat p0 t0)
+    let find p0 =
+        let t0 = map.[p0]
+        p0 |> nearestNeighbors n |> List.choose (tryCheat p0 t0)
 
     let rec f p c =
         match p with
         | [] -> List.concat c |> List.countBy id
-        | x :: xs -> f xs ((find x xs) :: c)
+        | x :: xs -> f xs ((find x) :: c)
 
     f path []
 
 
-let part1 map path =
-    findCheats 2 map (List.sort path)
-    |> List.filter (fun (d, _) -> d >= 100)
-    |> List.sumBy snd
+let part1 nearestNeighbors map path =
+    findCheats nearestNeighbors 2 map (List.sort path) |> List.sumBy snd
 
 
-let part2 map path =
-    findCheats 20 map (List.sort path)
-    |> List.filter (fun (d, _) -> d >= 100)
-    |> List.sumBy snd
+let part2 nearestNeighbors map path =
+    findCheats nearestNeighbors 20 map (List.sort path) |> List.sumBy snd
 
 
 let run =
@@ -98,8 +97,19 @@ let run =
 
     let start = Map.pick (fun k v -> if v = Start then Some k else None) tiles
     let path = findPath [] tiles start
-    let map = markPath path 0 tiles
+    let map = markPath path tiles
 
-    printfn "Part 1: %d" (part1 map path)
-    printfn "Part 2: %d" (part2 map path)
+    let kdtree =
+        { Distance = Position.distance
+          Select = (fun i p -> if i = 0 then p.Row else p.Column)
+          MaxDimension = 1
+          MaxPerNode = 10 }
+
+    let root = KDTree.build path kdtree
+
+    let nearestNeighbors = KDTree.search kdtree root
+
+
+    printfn "Part 1: %d" (part1 nearestNeighbors map path)
+    printfn "Part 2: %d" (part2 nearestNeighbors map path)
     printfn ""
