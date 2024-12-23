@@ -196,3 +196,122 @@ module KDTree =
                         f ns (x.Right :: xs)
 
         f [] [ Some r ]
+
+
+type graphNode =
+    { Index: int
+      Name: string
+      Degree: int }
+
+
+type graph =
+    { Nodes: graphNode array
+      Edges: Set<int> array }
+
+
+module Graph =
+    open System.Collections.Generic
+    let size g = Array.length g.Nodes
+
+
+    let edges g i = g.Edges.[i]
+
+
+    let name g i = g.Nodes.[i].Name
+
+    let degree g i = g.Nodes.[i].Degree
+
+
+    let hasEdge g (i, j) = g.Edges.[i].Contains(j)
+
+
+    let degeneracyOrdering g =
+        g.Nodes |> Seq.sortBy (fun n -> n.Degree) |> Seq.map (fun n -> n.Index)
+
+
+    let fromList list =
+        let lookup = new Dictionary<string, int>()
+        let degree = new Dictionary<int, int>()
+        let edges = new List<int * int>()
+
+        let addNode s =
+            if lookup.ContainsKey(s) then
+                let i = lookup.[s]
+                degree.[i] <- 1 + degree.[i]
+                i
+            else
+                let i = lookup.Count
+                lookup.[s] <- i
+                degree.[i] <- 1
+                i
+
+        for a, b in list do
+            let i = addNode a
+            let j = addNode b
+            edges.Add((i, j))
+            edges.Add((j, i))
+
+        let nodes =
+            lookup
+            |> Seq.map (fun kv -> kv.Key, kv.Value)
+            |> Seq.toList
+            |> Seq.sortBy snd
+            |> Seq.map (fun (n, i) ->
+                { Name = n
+                  Index = i
+                  Degree = degree.[i] })
+            |> Seq.toArray
+
+        let edgeLookup =
+            edges
+            |> Seq.groupBy fst
+            |> Seq.sortBy fst
+            |> Seq.map (fun (_, js) -> (js |> Seq.map snd |> set))
+            |> Seq.toArray
+
+        { Nodes = nodes; Edges = edgeLookup }
+
+
+    let clique3 g i =
+        let ie = (edges g i)
+
+        seq {
+            for j in ie do
+                for k in Set.intersect ie (edges g j) do
+                    yield [ i; j; k ]
+        }
+        |> Seq.map (List.sort)
+        |> Seq.map (fun x -> x.[0], x.[1], x.[2])
+
+
+    let maximalCliques g =
+
+        let rec bronKerbosch2 R P X =
+            seq {
+                if Set.isEmpty P && Set.isEmpty X then
+                    yield R
+                else
+                    let mutable P' = P
+                    let mutable X' = X
+                    let u = (Set.union P X) |> Seq.maxBy (degree g)
+
+                    for v in Set.difference P (edges g u) do
+                        let vn = edges g v
+                        yield! bronKerbosch2 (Set.add v R) (Set.intersect P' vn) (Set.intersect X' vn)
+                        P' <- Set.remove v P'
+                        X' <- Set.add v X'
+            }
+
+        let rec bronKerbosch3 g =
+            let mutable P = [ 0 .. size g - 1 ] |> set
+            let mutable X = Set.empty
+
+            seq {
+                for v in degeneracyOrdering g do
+                    let vn = edges g v
+                    yield! bronKerbosch2 (Set.singleton v) (Set.intersect P vn) (Set.intersect X vn)
+                    P <- Set.remove v P
+                    X <- Set.add v X
+            }
+
+        bronKerbosch3 g
