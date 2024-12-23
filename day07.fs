@@ -3,18 +3,16 @@ module Day07
 open System.IO
 
 open Extensions
-open System.Numerics
 
 
-let concat a b =
-    ((string a) + (string b)) |> uint64
+let inline concat a b = ((string a) + (string b)) |> uint64
 
 
 let apply operators a b ys =
     operators |> List.map (fun o -> (o a b), ys)
 
 
-let rec findSolution (next: 'a -> 'a -> 'a list -> ('a * 'a list) list) current target =
+let rec findSolution next current target =
     match current with
     | (x, []) :: _ when x = target -> true
     | (x, []) :: xs when x <> target -> findSolution next xs target
