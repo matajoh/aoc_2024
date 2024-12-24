@@ -218,6 +218,14 @@ module List =
 
         Grid.create rows columns table
 
+    let permutations list =
+        let rec inserts e = function
+            | [] -> [[e]]
+            | x::xs as list -> (e::list)::(inserts e xs |> List.map (fun xs' -> x::xs'))
+
+        List.fold (fun accum x -> List.collect (inserts x) accum) [[]] list
+
+
 
 module String =
     let split (separator: String) (string: String) = string.Split(separator) |> Array.toList
